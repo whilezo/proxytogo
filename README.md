@@ -1,6 +1,6 @@
 # ProxyToGo
 
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/license/mit/)
 
 ## Description
 
@@ -34,7 +34,7 @@ ProxyToGo is a lightweight and customizable proxy server written in Go. It allow
    make deps
 
 4. Build the proxy binary: 
-   ```
+   ```shell
    make build
 
 ## Configuration
