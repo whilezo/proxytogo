@@ -2,7 +2,6 @@
 package main
 
 import (
-	"fmt"
 	"proxy/proxy"
 	"sync"
 )
@@ -15,10 +14,9 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println(config.Listeners)
 	for i := range config.Listeners {
 		wg.Add(1)
-		go proxy.StartProxy(&config.Listeners[i], config.Debug)
+		go proxy.StartProxy(&config.Listeners[i], config.Debug, &wg)
 	}
 	wg.Wait()
 }

@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"sync"
 )
 
 // Proxy is a proxy structure.
@@ -15,7 +16,9 @@ type Proxy struct {
 }
 
 // StartProxy starts the proxy server with the given configuration.
-func StartProxy(listener *ListenerConfig, debug bool) {
+func StartProxy(listener *ListenerConfig, debug bool, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	server, err := net.Listen("tcp", listener.ListenerAddress)
 	if err != nil {
 		if debug {
@@ -24,7 +27,7 @@ func StartProxy(listener *ListenerConfig, debug bool) {
 		return
 	}
 	if debug {
-		log.Print("Successfully started server")
+		log.Printf("Successfully started server on: %s", listener.ListenerAddress)
 	}
 
 	currentServerNum := 0
@@ -55,6 +58,7 @@ func StartProxy(listener *ListenerConfig, debug bool) {
 		if debug {
 			log.Printf("Connected to backend: %s", backend.RemoteAddr().String())
 		}
+		proxy.Backend = backend
 		currentServerNum = (currentServerNum + 1) % len(listener.BackendAddresses)
 
 		go proxy.ForwardRequests()
