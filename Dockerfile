@@ -1,12 +1,10 @@
-FROM golang:latest
+FROM golang:1.20-alpine
 
 WORKDIR /app
 
-COPY . ./
+COPY . .
 
 RUN go mod download
-RUN go build -o bin/balanceer
+RUN go build -o bin/proxy cmd/main.go
 
-EXPOSE 4040
-
-CMD [ "bin/balancer" ]
+CMD [ "bin/proxy" ]
