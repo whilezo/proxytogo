@@ -33,5 +33,11 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, err
 	}
 
+	for i, listener := range config.Listeners {
+		if listener.TimeoutConnect == 0 {
+			config.Listeners[i].TimeoutConnect = 60
+		}
+	}
+
 	return &config, nil
 }
