@@ -2,6 +2,7 @@
 package main
 
 import (
+	"log"
 	"proxy/proxy"
 	"sync"
 )
@@ -11,7 +12,7 @@ func main() {
 
 	config, err := proxy.LoadConfig("etc/config.yaml")
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	for i := range config.Listeners {

@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"errors"
+	"fmt"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -19,6 +21,11 @@ type Config struct {
 	Debug     bool             `yaml:"debug"`
 }
 
+var (
+	// ErrConfig is a global error for config-related errors.
+	ErrConfig = errors.New("config error")
+)
+
 // LoadConfig loads the YAML configuration file and returns the parsed configuration data.
 func LoadConfig(path string) (*Config, error) {
 	var config Config
@@ -34,6 +41,10 @@ func LoadConfig(path string) (*Config, error) {
 	}
 
 	for i, listener := range config.Listeners {
+		if len(listener.BackendAddresses) == 0 {
+			return nil, fmt.Errorf("%w: there is no any backends in %v listener", ErrConfig, listener.ListenerAddress)
+		}
+
 		if listener.TimeoutConnect == 0 {
 			config.Listeners[i].TimeoutConnect = 60
 		}
