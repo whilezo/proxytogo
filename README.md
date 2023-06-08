@@ -46,15 +46,19 @@ The configuration of ProxyToGo is defined in the etc/config.yaml file. You can s
        backendAddresses:
          - 127.0.0.1:9000
          - 127.0.0.1:9001
+       timeoutConnect: 10
+
      - listenerAddress: localhost:8080
        backendAddresses:
          - 127.0.0.1:9090
          - 127.0.0.1:9091
+       timeoutConnect: 15
    debug: true
    ```
 
 - listenerAddress: The address on which the proxy server listens for client connections.
 - backendAddresses: The addresses of the backend servers to which the client requests will be forwarded.
+- timeoutConnect: Specify the connection timeout duration for backend servers in seconds.
 - debug: Enable or disable debug mode for logging (true or false).
 
 ## Usage

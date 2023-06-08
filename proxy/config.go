@@ -10,6 +10,7 @@ import (
 type ListenerConfig struct {
 	ListenerAddress  string   `yaml:"listenerAddress"`
 	BackendAddresses []string `yaml:"backendAddresses"`
+	TimeoutConnect   int      `yaml:"timeoutConnect"`
 }
 
 // Config is a config structure for proxy application

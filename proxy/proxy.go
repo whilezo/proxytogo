@@ -6,13 +6,15 @@ import (
 	"log"
 	"net"
 	"sync"
+	"time"
 )
 
 // Proxy is a proxy structure.
 type Proxy struct {
-	Backend net.Conn
-	Client  net.Conn
-	Debug   bool
+	Backend        net.Conn
+	Client         net.Conn
+	TimeoutConnect time.Duration
+	Debug          bool
 }
 
 // StartProxy starts the proxy server with the given configuration.
@@ -31,11 +33,11 @@ func StartProxy(listener *ListenerConfig, debug bool, wg *sync.WaitGroup) {
 	}
 
 	currentServerNum := 0
+	globalProxy := new(Proxy)
+	globalProxy.Debug = debug
+	globalProxy.TimeoutConnect = time.Duration(listener.TimeoutConnect) * time.Second
 
 	for {
-		proxy := new(Proxy)
-		proxy.Debug = debug
-
 		conn, err := server.Accept()
 		if err != nil {
 			if debug {
@@ -46,9 +48,10 @@ func StartProxy(listener *ListenerConfig, debug bool, wg *sync.WaitGroup) {
 		if debug {
 			log.Printf("New client: %s", conn.RemoteAddr().String())
 		}
+		proxy := *globalProxy
 		proxy.Client = conn
 
-		backend, err := net.Dial("tcp", listener.BackendAddresses[currentServerNum])
+		backend, err := net.DialTimeout("tcp", listener.BackendAddresses[currentServerNum], proxy.TimeoutConnect)
 		if err != nil {
 			if debug {
 				log.Printf("Error while connecting to backend: %v", err)

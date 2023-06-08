@@ -2,4 +2,5 @@ listeners:
   - listenerAddress: "127.0.0.1:8000"
     backendAddresses: 
     - "127.0.0.1:9000"
+    timeoutConnect: 10
 debug: true
