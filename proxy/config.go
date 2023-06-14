@@ -13,6 +13,8 @@ type ListenerConfig struct {
 	ListenerAddress  string   `yaml:"listenerAddress"`
 	BackendAddresses []string `yaml:"backendAddresses"`
 	TimeoutConnect   int      `yaml:"timeoutConnect"`
+	TimeoutRead      int      `yaml:"timeoutRead"`
+	TimeoutWrite     int      `yaml:"timeoutSend"`
 }
 
 // Config is a config structure for proxy application
@@ -24,6 +26,15 @@ type Config struct {
 var (
 	// ErrConfig is a global error for config-related errors.
 	ErrConfig = errors.New("config error")
+)
+
+const (
+	// DefaultConnectTimeout default timeout for establishing a connection (in seconds)
+	DefaultConnectTimeout = 60
+	// DefautlReadTimeout default timeout for read operations (in seconds)
+	DefautlReadTimeout = 60
+	// DefaultWriteTimeout default timeout for write operations (in seconds)
+	DefaultWriteTimeout = 60
 )
 
 // LoadConfig loads the YAML configuration file and returns the parsed configuration data.
@@ -46,7 +57,13 @@ func LoadConfig(path string) (*Config, error) {
 		}
 
 		if listener.TimeoutConnect == 0 {
-			config.Listeners[i].TimeoutConnect = 60
+			config.Listeners[i].TimeoutConnect = DefaultConnectTimeout
+		}
+		if listener.TimeoutRead == 0 {
+			config.Listeners[i].TimeoutRead = DefautlReadTimeout
+		}
+		if listener.TimeoutWrite == 0 {
+			config.Listeners[i].TimeoutWrite = DefaultWriteTimeout
 		}
 	}
 

@@ -2,6 +2,7 @@
 package proxy
 
 import (
+	"errors"
 	"io"
 	"log"
 	"net"
@@ -14,6 +15,8 @@ type Proxy struct {
 	Backend        net.Conn
 	Client         net.Conn
 	TimeoutConnect time.Duration
+	TimeoutRead    time.Duration
+	TimeoutWrite   time.Duration
 	Debug          bool
 }
 
@@ -34,8 +37,10 @@ func StartProxy(listener *ListenerConfig, debug bool, wg *sync.WaitGroup) {
 
 	currentServerNum := 0
 	globalProxy := new(Proxy)
-	globalProxy.Debug = debug
 	globalProxy.TimeoutConnect = time.Duration(listener.TimeoutConnect) * time.Second
+	globalProxy.TimeoutRead = time.Duration(listener.TimeoutRead) * time.Second
+	globalProxy.TimeoutWrite = time.Duration(listener.TimeoutWrite) * time.Second
+	globalProxy.Debug = debug
 
 	for {
 		conn, err := server.Accept()
@@ -56,6 +61,7 @@ func StartProxy(listener *ListenerConfig, debug bool, wg *sync.WaitGroup) {
 			if debug {
 				log.Printf("Error while connecting to backend: %v", err)
 			}
+			conn.Close()
 			continue
 		}
 		if debug {
@@ -70,30 +76,73 @@ func StartProxy(listener *ListenerConfig, debug bool, wg *sync.WaitGroup) {
 
 // ForwardRequests recieves request from client and forwards it to proxy and backwards.
 func (p *Proxy) ForwardRequests() {
-	buffer := make([]byte, 4096)
-
-	close := func() {
+	closeConnections := func() {
 		p.Client.Close()
 		p.Backend.Close()
 	}
 
 	// Reading from client and writing to backend.
 	go func() {
-		defer close()
+		defer closeConnections()
+		var n int
+		var err error
+		var bytesForwarded int
+		buffer := make([]byte, 4096)
 
-		n, err := io.CopyBuffer(p.Backend, p.Client, buffer)
+		for {
+			p.Client.SetReadDeadline(time.Now().Add(p.TimeoutRead))
+			p.Client.SetWriteDeadline(time.Now().Add(p.TimeoutWrite))
+
+			n, err = copyBuffer(p.Client, p.Backend, buffer)
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					err = nil
+				}
+				break
+			}
+			bytesForwarded += n
+		}
+
 		if p.Debug {
-			log.Printf("Incoming TCP connection closed; error: %v; bytes forwarded: %d\n", err, n)
+			log.Printf("Incoming TCP connection closed; error: %v; bytes forwarded: %d\n", err, bytesForwarded)
 		}
 	}()
 
 	// Reading from backend and writing to client.
 	go func() {
-		defer close()
+		defer closeConnections()
+		var n int
+		var err error
+		var bytesForwarded int
+		buffer := make([]byte, 4096)
 
-		n, err := io.CopyBuffer(p.Client, p.Backend, buffer)
+		for {
+			n, err = copyBuffer(p.Backend, p.Client, buffer)
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					err = nil
+				}
+				break
+			}
+			bytesForwarded += n
+		}
+
 		if p.Debug {
-			log.Printf("Outgoing TCP connection closed; error: %v; bytes forwarded: %d\n", err, n)
+			log.Printf("Outgoing TCP connection closed; error: %v; bytes forwarded: %d\n", err, bytesForwarded)
 		}
 	}()
+}
+
+func copyBuffer(src, dst net.Conn, buffer []byte) (int, error) {
+	n, err := src.Read(buffer)
+	if err != nil {
+		return 0, err
+	}
+
+	n, err = dst.Write(buffer[:n])
+	if err != nil {
+		return n, err
+	}
+
+	return n, nil
 }

@@ -1,6 +1,8 @@
 listeners:
   - listenerAddress: "127.0.0.1:8000"
     backendAddresses: 
-      - "127.0.0.1:9000"
+      - "google.com:80"
     timeoutConnect: 10
+    timeoutRead: 30
+    timeoutWrite: 60
 debug: true
