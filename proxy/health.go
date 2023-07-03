@@ -16,15 +16,15 @@ type HealthCheck struct {
 }
 
 // StartHealthCheck runs a health check for all listener backends
-func StartHealthCheck(backends []string, interval, timeout int, debug bool) map[string]*bool {
+func StartHealthCheck(backends []string, interval, timeout time.Duration, debug bool) map[string]*bool {
 	backendStatus := make(map[string]*bool, 0)
 
 	for _, backend := range backends {
 		h := HealthCheck{
 			BackendAddr:   backend,
 			Status:        false,
-			CheckInterval: time.Duration(interval) * time.Second,
-			Timeout:       time.Duration(timeout) * time.Second,
+			CheckInterval: interval,
+			Timeout:       timeout,
 			Debug:         debug,
 		}
 		go h.Run()
