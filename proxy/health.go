@@ -15,6 +15,17 @@ type HealthCheck struct {
 	Debug         bool
 }
 
+// GetAvailableBackend gets first available backend server in map and returns its adress as string.
+func GetAvailableBackend(healthStatus map[string]*bool) string {
+	for address, status := range healthStatus {
+		if *status {
+			return address
+		}
+	}
+
+	return ""
+}
+
 // StartHealthCheck runs a health check for all listener backends
 func StartHealthCheck(backends []string, interval, timeout time.Duration, debug bool) map[string]*bool {
 	backendStatus := make(map[string]*bool, 0)
