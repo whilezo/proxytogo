@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// Proxy is a proxy structure.
+// Proxy is a proxy configuration for backend and client.
 type Proxy struct {
 	Backend        net.Conn
 	Client         net.Conn
@@ -35,6 +35,13 @@ func StartProxy(listener *ListenerConfig, debug bool, wg *sync.WaitGroup) {
 		log.Printf("Successfully started server on: %s", listener.ListenerAddress)
 	}
 
+	healthStatus := StartHealthCheck(
+		listener.BackendAddresses,
+		10*time.Second,
+		time.Duration(listener.TimeoutConnect)*time.Second,
+		debug,
+	)
+
 	currentServerNum := 0
 	globalProxy := new(Proxy)
 	globalProxy.TimeoutConnect = time.Duration(listener.TimeoutConnect) * time.Second
@@ -56,7 +63,21 @@ func StartProxy(listener *ListenerConfig, debug bool, wg *sync.WaitGroup) {
 		proxy := *globalProxy
 		proxy.Client = conn
 
-		backend, err := net.DialTimeout("tcp", listener.BackendAddresses[currentServerNum], proxy.TimeoutConnect)
+		backendAddr := listener.BackendAddresses[currentServerNum]
+
+		if !*healthStatus[backendAddr] {
+			if debug {
+				log.Printf("Backend %s doesn't work", backendAddr)
+			}
+
+			backendAddr = GetAvailableBackend(healthStatus)
+			if backendAddr == "" {
+				log.Printf("No available backends right now")
+				continue
+			}
+		}
+
+		backend, err := net.DialTimeout("tcp", backendAddr, proxy.TimeoutConnect)
 		if err != nil {
 			if debug {
 				log.Printf("Error while connecting to backend: %v", err)
