@@ -10,11 +10,12 @@ import (
 
 // ListenerConfig holds the configuration for a listener, including the listener's address and the corresponding backend address for proxying requests.
 type ListenerConfig struct {
-	ListenerAddress  string   `yaml:"listenerAddress"`
-	BackendAddresses []string `yaml:"backendAddresses"`
-	TimeoutConnect   int      `yaml:"timeoutConnect"`
-	TimeoutRead      int      `yaml:"timeoutRead"`
-	TimeoutWrite     int      `yaml:"timeoutSend"`
+	ListenerAddress     string   `yaml:"listenerAddress"`
+	BackendAddresses    []string `yaml:"backendAddresses"`
+	TimeoutConnect      int      `yaml:"timeoutConnect"`
+	TimeoutRead         int      `yaml:"timeoutRead"`
+	TimeoutWrite        int      `yaml:"timeoutSend"`
+	HealthCheckInterval int      `yaml:"healthCheckInterval"`
 }
 
 // Config is a config structure for proxy application
@@ -35,6 +36,8 @@ const (
 	DefautlReadTimeout = 60
 	// DefaultWriteTimeout default timeout for write operations (in seconds)
 	DefaultWriteTimeout = 60
+	// DefaultHealthCheckInterval default interval for health check operations (in seconds)
+	DefaultHealthCheckInterval = 10
 )
 
 // LoadConfig loads the YAML configuration file and returns the parsed configuration data.
@@ -64,6 +67,9 @@ func LoadConfig(path string) (*Config, error) {
 		}
 		if listener.TimeoutWrite == 0 {
 			config.Listeners[i].TimeoutWrite = DefaultWriteTimeout
+		}
+		if listener.HealthCheckInterval == 0 {
+			config.Listeners[i].HealthCheckInterval = DefaultHealthCheckInterval
 		}
 	}
 

@@ -5,4 +5,5 @@ listeners:
     timeoutConnect: 10
     timeoutRead: 30
     timeoutWrite: 60
+    healthCheckInterval: 5
 debug: true

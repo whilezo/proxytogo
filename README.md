@@ -67,6 +67,7 @@ The configuration of ProxyToGo is defined in the etc/config.yaml file. You can s
 the maximum time allowed for reading data from the connections. (default: 60)
 - timeoutWrite: Specify the write timeout duration for client and backend connections in seconds. This determines
 the maximum time allowed for writing data to the connections. (default: 60)
+- healthCheckInterval: Specify the backend adresses availability check interval in seconds. 
 - debug: Enable or disable debug mode for logging (true or false). (default: false)
 
 ## Usage

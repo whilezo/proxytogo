@@ -37,7 +37,7 @@ func StartProxy(listener *ListenerConfig, debug bool, wg *sync.WaitGroup) {
 
 	healthStatus := StartHealthCheck(
 		listener.BackendAddresses,
-		10*time.Second,
+		time.Duration(listener.HealthCheckInterval)*time.Second,
 		time.Duration(listener.TimeoutConnect)*time.Second,
 		debug,
 	)
