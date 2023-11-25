@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"fmt"
 	"net"
 	"time"
 )
@@ -48,12 +47,12 @@ func StartHealthCheck(backends []string, interval, timeout time.Duration, debug 
 // Run starts to perform a health check on the backend.
 func (h *HealthCheck) Run() {
 	for {
-		_, err := net.DialTimeout("tcp", h.BackendAddr, h.Timeout)
+		conn, err := net.DialTimeout("tcp", h.BackendAddr, h.Timeout)
 
 		if err != nil {
-			fmt.Println(err)
 			h.Status = false
 		} else {
+			conn.Close()
 			h.Status = true
 		}
 

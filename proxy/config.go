@@ -11,6 +11,7 @@ import (
 // ListenerConfig holds the configuration for a listener, including the listener's address and the corresponding backend address for proxying requests.
 type ListenerConfig struct {
 	ListenerAddress     string   `yaml:"listenerAddress"`
+	Protocol            string   `yaml:"protocol"`
 	BackendAddresses    []string `yaml:"backendAddresses"`
 	TimeoutConnect      int      `yaml:"timeoutConnect"`
 	TimeoutRead         int      `yaml:"timeoutRead"`
@@ -30,6 +31,8 @@ var (
 )
 
 const (
+	// DefaultProtocol default protocol to communicate with client.
+	DefaultProtocol = "tcp"
 	// DefaultConnectTimeout default timeout for establishing a connection (in seconds)
 	DefaultConnectTimeout = 60
 	// DefautlReadTimeout default timeout for read operations (in seconds)
@@ -57,6 +60,10 @@ func LoadConfig(path string) (*Config, error) {
 	for i, listener := range config.Listeners {
 		if len(listener.BackendAddresses) == 0 {
 			return nil, fmt.Errorf("%w: there is no any backends in %v listener", ErrConfig, listener.ListenerAddress)
+		}
+
+		if listener.Protocol == "" {
+			config.Listeners[i].Protocol = DefaultProtocol
 		}
 
 		if listener.TimeoutConnect == 0 {

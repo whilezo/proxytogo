@@ -31,6 +31,6 @@ help:
 	@echo "  deps       - Install project dependencies"
 	@echo "  test       - Run tests"
 	@echo "  docs       - Generate code documentation"
-	@echo "  help       - Display this help information"
+	@echo "  help       - Display help information"
 
 .PHONY: build run start clean deps test docs help

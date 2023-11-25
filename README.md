@@ -61,6 +61,7 @@ The configuration of ProxyToGo is defined in the etc/config.yaml file. You can s
    ```
 
 - listenerAddress: The address on which the proxy server listens for client connections.
+- protocol: The protocol on which you want to communicate with clients. (tcp or udp) (default tcp) 
 - backendAddresses: The addresses of the backend servers to which the client requests will be forwarded.
 - timeoutConnect: Specify the connection timeout duration for backend servers in seconds. (default: 60)
 - timeoutRead: Specify the read timeout duration for client and backend connections in seconds. This determines
