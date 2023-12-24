@@ -3,10 +3,11 @@ package proxy
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 // Proxy is a proxy configuration for backend and client.
@@ -19,11 +20,10 @@ type Proxy struct {
 	TimeoutConnect   time.Duration
 	TimeoutRead      time.Duration
 	TimeoutWrite     time.Duration
-	Debug            bool
 }
 
 // StartProxy starts the proxy server with the given configuration.
-func StartProxy(listener *ListenerConfig, debug bool, wg *sync.WaitGroup) error {
+func StartProxy(listener *ListenerConfig, wg *sync.WaitGroup) error {
 	var TCPServer net.Listener
 	var UDPServer *net.UDPConn
 	var err error
@@ -33,9 +33,7 @@ func StartProxy(listener *ListenerConfig, debug bool, wg *sync.WaitGroup) error 
 	if listener.Protocol == "tcp" {
 		TCPServer, err = net.Listen("tcp", listener.ListenerAddress)
 		if err != nil {
-			if debug {
-				log.Printf("Error while starting server: %v", err)
-			}
+			logrus.Debugf("Error while starting server: %v", err)
 			return err
 		}
 	} else if listener.Protocol == "udp" {
@@ -52,9 +50,7 @@ func StartProxy(listener *ListenerConfig, debug bool, wg *sync.WaitGroup) error 
 		return fmt.Errorf("unsupported protocol")
 	}
 
-	if debug {
-		log.Printf("Successfully started server on: %s", listener.ListenerAddress)
-	}
+	logrus.Debugf("Successfully started server on: %s", listener.ListenerAddress)
 
 	globalProxy := new(Proxy)
 	globalProxy.BackendAddresses = listener.BackendAddresses
@@ -62,13 +58,11 @@ func StartProxy(listener *ListenerConfig, debug bool, wg *sync.WaitGroup) error 
 		listener.BackendAddresses,
 		time.Duration(listener.HealthCheckInterval)*time.Second,
 		time.Duration(listener.TimeoutConnect)*time.Second,
-		debug,
 	)
 	globalProxy.Protocol = listener.Protocol
 	globalProxy.TimeoutConnect = time.Duration(listener.TimeoutConnect) * time.Second
 	globalProxy.TimeoutRead = time.Duration(listener.TimeoutRead) * time.Second
 	globalProxy.TimeoutWrite = time.Duration(listener.TimeoutWrite) * time.Second
-	globalProxy.Debug = debug
 
 	if globalProxy.Protocol == "tcp" {
 		globalProxy.listenTCP(TCPServer, listener)
@@ -88,27 +82,22 @@ func (p Proxy) listenUDP(s *net.UDPConn) {
 		backendAddr := p.BackendAddresses[currentServerNum]
 
 		if !*p.Health[backendAddr] {
-			if p.Debug {
-				log.Printf("Backend %s doesn't work", backendAddr)
-			}
+			logrus.Debugf("Backend %s doesn't work", backendAddr)
 
 			backendAddr = GetAvailableBackend(p.Health)
 			if backendAddr == "" {
-				log.Printf("No available backends right now")
+				logrus.Debug("No available backends right now")
 				continue
 			}
 		}
 
 		backend, err := net.DialTimeout("tcp", backendAddr, p.TimeoutConnect)
 		if err != nil {
-			if p.Debug {
-				log.Printf("Error while connecting to backend: %v", err)
-			}
+			logrus.Debugf("Error while connecting to backend: %v", err)
 			continue
 		}
-		if p.Debug {
-			log.Printf("Connected to backend: %s", backend.RemoteAddr().String())
-		}
+		logrus.Debugf("Connected to backend: %s", backend.RemoteAddr().String())
+
 		p.Backend = backend
 		currentServerNum = (currentServerNum + 1) % len(p.BackendAddresses)
 
@@ -134,9 +123,7 @@ func (p Proxy) listenUDP(s *net.UDPConn) {
 				bytesForwarded += n
 			}
 
-			if p.Debug {
-				log.Printf("Incoming UDP connection closed; error: %v; bytes forwarded: %d\n", err, bytesForwarded)
-			}
+			logrus.Debugf("Incoming UDP connection closed; error: %v; bytes forwarded: %d\n", err, bytesForwarded)
 		}()
 
 		go func() {
@@ -161,9 +148,7 @@ func (p Proxy) listenUDP(s *net.UDPConn) {
 				bytesForwarded += n
 			}
 
-			if p.Debug {
-				log.Printf("Incoming UDP connection closed; error: %v; bytes forwarded: %d\n", err, bytesForwarded)
-			}
+			logrus.Debugf("Incoming UDP connection closed; error: %v; bytes forwarded: %d\n", err, bytesForwarded)
 		}()
 	}
 }
@@ -174,42 +159,32 @@ func (p Proxy) listenTCP(s net.Listener, cfg *ListenerConfig) {
 	for {
 		conn, err := s.Accept()
 		if err != nil {
-			if p.Debug {
-				log.Printf("Error while accepting client: %v", err)
-			}
+			logrus.Debugf("Error while accepting client: %v", err)
 			continue
 		}
-		if p.Debug {
-			log.Printf("New client: %s", conn.RemoteAddr().String())
-		}
+		logrus.Debugf("New client: %s", conn.RemoteAddr().String())
 
 		p.Client = conn
 
 		backendAddr := p.BackendAddresses[currentServerNum]
 
 		if !*p.Health[backendAddr] {
-			if p.Debug {
-				log.Printf("Backend %s doesn't work", backendAddr)
-			}
+			logrus.Debugf("Backend %s doesn't work", backendAddr)
 
 			backendAddr = GetAvailableBackend(p.Health)
 			if backendAddr == "" {
-				log.Printf("No available backends right now")
+				logrus.Debugf("No available backends right now")
 				continue
 			}
 		}
 
 		backend, err := net.DialTimeout("tcp", backendAddr, p.TimeoutConnect)
 		if err != nil {
-			if p.Debug {
-				log.Printf("Error while connecting to backend: %v", err)
-			}
+			logrus.Debugf("Error while connecting to backend: %v", err)
 			conn.Close()
 			continue
 		}
-		if p.Debug {
-			log.Printf("Connected to backend: %s", backend.RemoteAddr().String())
-		}
+		logrus.Debugf("Connected to backend: %s", backend.RemoteAddr().String())
 		p.Backend = backend
 		currentServerNum = (currentServerNum + 1) % len(cfg.BackendAddresses)
 
@@ -243,9 +218,7 @@ func (p *Proxy) ForwardRequests() {
 			bytesForwarded += n
 		}
 
-		if p.Debug {
-			log.Printf("Incoming TCP connection closed; error: %v; bytes forwarded: %d\n", err, bytesForwarded)
-		}
+		logrus.Debugf("Incoming TCP connection closed; error: %v; bytes forwarded: %d\n", err, bytesForwarded)
 	}()
 
 	// Reading from backend and writing to client.
@@ -264,9 +237,7 @@ func (p *Proxy) ForwardRequests() {
 			bytesForwarded += n
 		}
 
-		if p.Debug {
-			log.Printf("Outgoing TCP connection closed; error: %v; bytes forwarded: %d\n", err, bytesForwarded)
-		}
+		logrus.Debugf("Outgoing TCP connection closed; error: %v; bytes forwarded: %d\n", err, bytesForwarded)
 	}()
 }
 

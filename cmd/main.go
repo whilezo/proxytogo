@@ -5,6 +5,8 @@ import (
 	"log"
 	"proxy/proxy"
 	"sync"
+
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -15,9 +17,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if config.Debug {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
+
 	for i := range config.Listeners {
 		wg.Add(1)
-		go proxy.StartProxy(&config.Listeners[i], config.Debug, &wg)
+		go proxy.StartProxy(&config.Listeners[i], &wg)
 	}
 	wg.Wait()
 }
